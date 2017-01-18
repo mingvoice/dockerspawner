@@ -1,17 +1,16 @@
-# Build as jupyter/systemuser
+# Build as jupyterhub/systemuser
 # Run with the DockerSpawner in JupyterHub
 
-FROM ipython/scipystack
+FROM jupyterhub/singleuser
 
-MAINTAINER IPython Project <ipython-dev@scipy.org>
+MAINTAINER Project Jupyter <jupyter@googlegroups.com>
 
-# fetch juptyerhub-singleuser entrypoint
-ADD https://raw.githubusercontent.com/jupyter/jupyterhub/master/jupyterhub/singleuser.py /usr/local/bin/jupyterhub-singleuser
-RUN chmod 755 /usr/local/bin/jupyterhub-singleuser
-
-EXPOSE 8888
-
+USER root
+WORKDIR /home
+RUN userdel jovyan && rm -rf /home/jovyan
 ENV SHELL /bin/bash
-
 ADD systemuser.sh /srv/singleuser/systemuser.sh
+# smoke test entrypoint
+RUN USER_ID=65000 USER=systemusertest sh /srv/singleuser/systemuser.sh -h && userdel systemusertest
+
 CMD ["sh", "/srv/singleuser/systemuser.sh"]

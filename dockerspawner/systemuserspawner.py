@@ -6,12 +6,11 @@ from traitlets import (
     Integer,
     Unicode,
 )
-from tornado import gen
 
 
 class SystemUserSpawner(DockerSpawner):
 
-    container_image = Unicode("jupyter/systemuser", config=True)
+    container_image = Unicode("jupyterhub/systemuser", config=True)
 
     host_homedir_format_string = Unicode(
         "/home/{username}",
@@ -21,6 +20,19 @@ class SystemUserSpawner(DockerSpawner):
             Format string for the path to the user's home directory on the host.
             The format string should include a `username` variable, which will
             be formatted with the user's username.
+            """
+        )
+    )
+
+    image_homedir_format_string = Unicode(
+        "/home/{username}",
+        config=True,
+        help=dedent(
+            """
+            Format string for the path to the user's home directory
+            inside the image.  The format string should include a
+            `username` variable, which will be formatted with the
+            user's username.
             """
         )
     )
@@ -51,7 +63,7 @@ class SystemUserSpawner(DockerSpawner):
         """
         Path to the user's home directory in the docker image.
         """
-        return "/home/{username}".format(username=self.user.name)
+        return self.image_homedir_format_string.format(username=self.user.name)
 
     @property
     def volume_mount_points(self):
@@ -85,8 +97,8 @@ class SystemUserSpawner(DockerSpawner):
         }
         return volumes
 
-    def _env_default(self):
-        env = super(SystemUserSpawner, self)._env_default()
+    def get_env(self):
+        env = super(SystemUserSpawner, self).get_env()
         env.update(dict(
             USER=self.user.name,
             USER_ID=self.user_id,
@@ -115,10 +127,9 @@ class SystemUserSpawner(DockerSpawner):
             state['user_id'] = self.user_id
         return state
 
-    @gen.coroutine
     def start(self, image=None):
         """start the single-user server in a docker container"""
-        yield super(SystemUserSpawner, self).start(
+        return super(SystemUserSpawner, self).start(
             image=image,
             extra_create_kwargs={'working_dir': self.homedir}
         )
