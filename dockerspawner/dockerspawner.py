@@ -99,9 +99,9 @@ class DockerSpawner(Spawner):
             identified by "bind" and the "mode" may be one of "rw"
             (default), "ro" (read-only), "z" (public/shared SELinux
             volume label), and "Z" (private/unshared SELinux volume
-            label). 
+            label).
 
-            If format_volume_name is not set, 
+            If format_volume_name is not set,
             default_format_volume_name is used for naming volumes.
             In this case, if you use {username} in either the host or guest
             file/directory path, it will be replaced with the current
@@ -117,7 +117,7 @@ class DockerSpawner(Spawner):
             Map from host file/directory to container file/directory.
             Volumes specified here will be read-only in the container.
 
-            If format_volume_name is not set, 
+            If format_volume_name is not set,
             default_format_volume_name is used for naming volumes.
             In this case, if you use {username} in either the host or guest
             file/directory path, it will be replaced with the current
@@ -230,7 +230,7 @@ class DockerSpawner(Spawner):
         self.read_only_volumes.
         """
         return sorted([value['bind'] for value in self.volume_binds.values()])
-    
+
     @property
     def volume_binds(self):
         """
@@ -381,6 +381,14 @@ class DockerSpawner(Spawner):
 
         """
         container = yield self.get_container()
+        if container and self.remove_containers:
+            self.log.warning(
+                "Removing container that should have been cleaned up: %s (id: %s)",
+                self.container_name, self.container_id[:7])
+            # remove the container, as well as any associated volumes
+            yield self.docker('remove_container', self.container_id, v=True)
+            container = None
+
         if container is None:
             image = image or self.container_image
 
@@ -455,14 +463,14 @@ class DockerSpawner(Spawner):
         self.user.server.port = port
         # jupyterhub 0.7 prefers returning ip, port:
         return (ip, port)
-    
+
     @gen.coroutine
     def get_ip_and_port(self):
         """Queries Docker daemon for container's IP and port.
 
         If you are using network_mode=host, you will need to override
         this method as follows::
-            
+
             @gen.coroutine
             def get_ip_and_port(self):
                 return self.container_ip, self.container_port
@@ -542,5 +550,3 @@ class DockerSpawner(Spawner):
                 v = v['bind']
             binds[_fmt(k)] = {'bind': _fmt(v), 'mode': m}
         return binds
-
-
